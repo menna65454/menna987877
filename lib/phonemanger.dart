@@ -1,50 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'emailverification.dart';
-import 'resetpass.dart';
+
 
 final supabase = Supabase.instance.client;
 
-class ForgetPassword extends StatefulWidget {
-  const ForgetPassword({super.key});
+
+class Phonemanger extends StatefulWidget {
+    final String phone;
+
+  
+   const Phonemanger({super.key, required this.phone});
 
   @override
-  State<ForgetPassword> createState() => _ForgetPasswordState();
+  State<Phonemanger> createState() => _PhonemangerState();
 }
 
-class _ForgetPasswordState extends State<ForgetPassword> {
+class _PhonemangerState extends State<Phonemanger> {
+   final List<TextEditingController> _codeControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
+  final List<FocusNode> _focusNodes = List.generate(
+    6,
+    (index) => FocusNode(),
+  );
   bool _isLoading = false;
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    for (var controller in _codeControllers) {
+      controller.dispose();
+    }
+    for (var node in _focusNodes) {
+      node.dispose();
+    }
     super.dispose();
   }
-
-  reset_password() async {
-    try {
-      await supabase.auth.resetPasswordForEmail(
-        _emailController.text, // فقط البريد الإلكتروني
-      );
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EmailVerification(
-            email: _emailController.text,
-          ),
-        ),
-      );
-    } catch (e) {
-      print("Error: $e");
-    }
-  }
-
+   
+ 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+   return Scaffold(
       body: SingleChildScrollView(
         child: Container(
           height: 812,
@@ -83,7 +81,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       const SizedBox(height: 180),
                       Center(
                         child: Text(
-                          'Forget Password',
+                          'Email Verification',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 32,
@@ -104,7 +102,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       const SizedBox(height: 20),
                       Center(
                         child: Text(
-                          'Mail Address here',
+                          'Get Your Code',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Color(0xFF0C0C0C),
@@ -117,7 +115,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       const SizedBox(height: 20),
                       Center(
                         child: Text(
-                          'Enter the email address associated with your account.',
+                          'Please enter the 6-digit code that was sent to your email address',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Color(0xFF797979),
@@ -129,34 +127,67 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                         ),
                       ),
                       const SizedBox(height: 40),
-                      Text(
-                        'Email',
-                        style: TextStyle(
-                          color: Color(0xFF0C0C0C),
-                          fontSize: 18,
-                          fontFamily: 'Inria Serif',
-                          fontWeight: FontWeight.w400,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: List.generate(
+                          6,
+                          (index) => SizedBox(
+                            width: 50,
+                            child: TextField(
+                              controller: _codeControllers[index],
+                              focusNode: _focusNodes[index],
+                              textAlign: TextAlign.center,
+                              keyboardType: TextInputType.number,
+                              maxLength: 1,
+                              decoration: InputDecoration(
+                                counterText: "",
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              onChanged: (value) {
+                                if (value.isNotEmpty && index < 5) {
+                                  _focusNodes[index + 1].requestFocus();
+                                }
+                              },
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _emailController,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your email',
-                          prefixIcon: const Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "If you don't receive code ",
+                            style: TextStyle(
+                              color: Color(0xFF797979),
+                              fontSize: 16,
+                              fontFamily: 'Inria Serif',
+                            ),
                           ),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                        ),
+                          TextButton(
+                             onPressed:(){},// _isLoading ? null : _resendCode,
+                            child: Text(
+                              'Resend It',
+                              style: TextStyle(
+                                color: Color(0xFF24744B),
+                                fontSize: 16,
+                                fontFamily: 'Inria Serif',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 20),
                       SizedBox(
                         height: 50,
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: _isLoading ? null : reset_password,
+                          onPressed: (){},//_isLoading ? null : _verifyCode,
                           style: ButtonStyle(
                             backgroundColor:
                                 MaterialStateProperty.all(Colors.transparent),
@@ -187,7 +218,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                               width: double.infinity,
                               height: double.infinity,
                               child: Text(
-                                "Recover Password",
+                                "Verify",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,

@@ -67,65 +67,46 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Future<void> _signInWithGoogle() async {
-  //   try {
-  //     setState(() => _isLoading = true);
-  //     await supabase.auth.signInWithOAuth(
-  //       Provider.google,
-  //       redirectTo: 'io.supabase.lipify://login-callback/',
-  //     );
-  //   } catch (error) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Failed to sign in with Google')),
-  //     );
-  //   } finally {
-  //     if (mounted) setState(() => _isLoading = false);
-  //   }
-  // }
-
-  // Future<void> _signInWithFacebook() async {
-  //   try {
-  //     setState(() => _isLoading = true);
-  //     await supabase.auth.signInWithOAuth(
-  //       Provider.facebook,
-  //       redirectTo: 'io.supabase.lipify://login-callback/',
-  //     );
-  //   } catch (error) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Failed to sign in with Facebook')),
-  //     );
-  //   } finally {
-  //     if (mounted) setState(() => _isLoading = false);
-  //   }
-  // }
-
-  Future<void> _resetPassword() async {
-    if (_emailController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email')),
-      );
-      return;
-    }
-
+  Future<void> _signInWithGoogle() async {
     try {
       setState(() => _isLoading = true);
-      await supabase.auth.resetPasswordForEmail(
-        _emailController.text.trim(),
+      await supabase.auth.signInWithOAuth(
+        Provider.google,
+        redirectTo: 'io.supabase.lipify://Upload_Page-callback/',
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset email sent')),
-        );
-      }
     } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send reset email')),
+        const SnackBar(content: Text('Failed to sign in with Google')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  Future<void> _signInWithFacebook() async {
+  try {
+    setState(() => _isLoading = true);
+    await supabase.auth.signInWithOAuth(
+      Provider.facebook,
+      redirectTo: 'io.supabase.lipify://LoginScreen-callback/',
+    );
+    debugPrint("Facebook login started...");
+  } on AuthException catch (error) {
+    debugPrint("Facebook Auth Error: ${error.message}");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Facebook Auth Error: ${error.message}')),
+    );
+  } catch (error) {
+    debugPrint("Unexpected error: $error");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Unexpected error: $error')),
+    );
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
+  }
+}
+
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -258,6 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontFamily: 'Inria Serif',
                           fontWeight: FontWeight.w400,
                         ),
+                        
                       ),
                       const SizedBox(height: 10),
                       TextField(
@@ -295,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => Forgetpass(),
+                                  builder: (context) => ForgetPassword(),
                                 ),
                               );
                             },
@@ -388,20 +370,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      // Row(
-                      //   mainAxisAlignment: MainAxisAlignment.center,
-                      //   children: [
-                      //     _socialLoginButton(
-                      //       Icons.g_mobiledata,
-                      //       onPressed: _isLoading ? null : _signInWithGoogle,
-                      //     ),
-                      //     const SizedBox(width: 20),
-                      //     _socialLoginButton(
-                      //       Icons.facebook,
-                      //       onPressed:(){} _isLoading ? null : _signInWithFacebook,
-                      //     ),
-                      //   ],
-                      // ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _socialLoginButton(
+                            Icons.g_mobiledata,
+                            onPressed: _isLoading ? null : _signInWithGoogle,
+                          ),
+                          const SizedBox(width: 20),
+                          _socialLoginButton(
+                            Icons.facebook,
+                            onPressed: _isLoading ? null : _signInWithFacebook,
+                          ),
+                        ],
+                      ),
                       const Spacer(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,

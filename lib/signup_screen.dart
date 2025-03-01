@@ -33,54 +33,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUp() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
-      return;
-    }
+  if (_passwordController.text != _confirmPasswordController.text) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Passwords do not match')),
+    );
+    return;
+  }
 
-    if (_fullNameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields')),
-      );
-      return;
-    }
+  if (_fullNameController.text.isEmpty ||
+      _emailController.text.isEmpty ||
+      _passwordController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please fill in all fields')),
+    );
+    return;
+  }
 
-    try {
-      setState(() => _isLoading = true);
+  try {
+    setState(() => _isLoading = true);
 
-      final AuthResponse res = await supabase.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        data: {'full_name': _fullNameController.text.trim()},
-      );
+    final AuthResponse res = await supabase.auth.signUp(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
 
-      if (res.user != null && mounted) {
+    final user = res.user;
+
+    if (user != null) {
+      // إضافة بيانات المستخدم إلى جدول profiles
+      await supabase.from('profiles').insert({
+        'id': user.id,
+        'full_name': _fullNameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone_number': null,  // يمكن تحديثه لاحقًا
+        'avatar_url': null,     // يمكن تحديثه لاحقًا
+      });
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Successfully signed up!')),
         );
+
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => SuccessScreen(),
-          ),
-        ); // Go back to login screen
+          MaterialPageRoute(builder: (context) => SuccessScreen()),
+        );
       }
-    } on AuthException catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unexpected error occurred')),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
+  } on AuthException catch (error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error.message)),
+    );
+  } catch (error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Unexpected error occurred')),
+    );
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

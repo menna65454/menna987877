@@ -1,12 +1,17 @@
-// ignore_for_file: prefer_const_constructors, sort_child_properties_last
+// ignore_for_file: prefer_const_constructors, sort_child_properties_last, prefer_const_literals_to_create_immutables
 
 import 'package:flutter/material.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:login2/profilescreen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 
 import 'alert.dart';
 import 'camerascreen.dart';
+import 'editprofile.dart';
+import 'history.dart';
+
 
 class Upload_Page extends StatefulWidget {
   Upload_Page({super.key});
@@ -16,39 +21,109 @@ class Upload_Page extends StatefulWidget {
 }
 
 class _Upload_PageState extends State<Upload_Page> {
+  int _selectedIndex = 3; 
+    String? avatarUrl;
+     Map<String, dynamic>? userData;
+
+
+ Future<void> _fetchUserData() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    final response = await supabase.from('profiles').select().eq('id', user.id).single();
+    setState(() {
+      userData = response;
+    });
+  }
+
+  String getFirstName(String fullName) {
+    // تقسيم النص إلى كلمات واستخراج أول كلمة
+    return fullName.split(' ')[0];
+  }
+
+
+   Future<void> _fetchUserAvatar() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    final response =
+        await supabase.from('profiles').select('avatar_url').eq('id', user.id).single();
+
+    setState(() {
+      avatarUrl = response['avatar_url'];
+    });
+  }
+
+
+
+  void _onItemTapped(int index) {
+    // لا تفعل شيئًا إذا تم النقر على نفس الصفحة
+
+    Widget nextScreen;
+    switch (index) {
+      case 0:
+        nextScreen = Upload_Page();
+        break;
+      case 1:
+        nextScreen = History();
+        break;
+      case 2:
+        nextScreen = ProfileScreen();
+        break;
+      case 3:
+        nextScreen = ProfileScreen();
+        break;
+      default:
+        return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => nextScreen),
+    );
+  }
+
   @override
+   void initState() {
+    super.initState();
+    _fetchUserAvatar();
+            _fetchUserData();
+
+  }
   Widget build(BuildContext context) {
+   
     return Scaffold(
       appBar: AppBar(
         leading: Padding(
-          padding: const EdgeInsets.only(left: 5),
+          padding: const EdgeInsets.only(left: 7),
           child: CircleAvatar(
-            radius: 25,
-          ),
+      radius: 50,
+      backgroundImage: avatarUrl != null
+          ? NetworkImage(avatarUrl!)
+          : const AssetImage('assets/default_avatar.png') as ImageProvider, 
+    )
         ),
-        title: Column(
-          children: [
-            Text(
-              'Hi, Laila',
-              style: TextStyle(
-                color: Color(0xFF0C0C0C),
-                fontSize: 14,
-                fontFamily: 'Inria Serif',
-                fontWeight: FontWeight.w400,
-                height: 1.50,
+        title:  userData == null
+          ? const Center(child: CircularProgressIndicator())
+          :
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              
+              Text(
+                    'Hi , ${getFirstName(userData!['full_name'] ?? '')}',
+                style: TextStyle(
+                  color: Color(0xFF0C0C0C),
+                  fontSize: 20,
+                  fontFamily: 'Inria Serif',
+                  fontWeight: FontWeight.w400,
+                  height: 1.50,
+                ),
               ),
-            ),
-            Text(
-              'dolores ratione officiis',
-              style: TextStyle(
-                color: Color(0xFF797979),
-                fontSize: 12,
-                fontFamily: 'Inria Sans',
-                fontWeight: FontWeight.w400,
-                height: 1.50,
-              ),
-            ),
-          ],
+             
+            ],
+          ),
         ),
         actions: [
           Icon(
@@ -67,6 +142,7 @@ class _Upload_PageState extends State<Upload_Page> {
             ),
             Row(
               children: [
+                SizedBox(height: 70,),
                 Text(
                   'Lip Reading',
                   style: TextStyle(
@@ -80,7 +156,7 @@ class _Upload_PageState extends State<Upload_Page> {
                 ),
               ],
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
             Container(
               child: Column(
                 children: [
@@ -170,6 +246,18 @@ class _Upload_PageState extends State<Upload_Page> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex, // تعيين العنصر المحدد
+        selectedItemColor: Colors.grey,
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped, // استدعاء التنقل عند الضغط
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: ""),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: ""),
+        ],
       ),
     );
   }

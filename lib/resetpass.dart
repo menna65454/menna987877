@@ -1,44 +1,91 @@
+// ignore_for_file: prefer_const_literals_to_create_immutables, prefer_const_constructors
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'emailverification.dart';
-import 'resetpass.dart';
+import 'login.dart';
 
 final supabase = Supabase.instance.client;
 
-class ForgetPassword extends StatefulWidget {
-  const ForgetPassword({super.key});
+class ResetPassword extends StatefulWidget {
+  final String email;
+
+  const ResetPassword({super.key, required this.email});
 
   @override
-  State<ForgetPassword> createState() => _ForgetPasswordState();
+  State<ResetPassword> createState() => _ResetPasswordState();
 }
 
-class _ForgetPasswordState extends State<ForgetPassword> {
-  bool _isLoading = false;
-  final _emailController = TextEditingController();
+class _ResetPasswordState extends State<ResetPassword> {
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
   @override
   void dispose() {
-    _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  reset_password() async {
+  Future<void> _updatePassword() async {
+    if (_passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields')),
+      );
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    if (_passwordController.text.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 8 characters')),
+      );
+      return;
+    }
+
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No user is currently signed in')),
+      );
+      return;
+    }
+
     try {
-      await supabase.auth.resetPasswordForEmail(
-        _emailController.text, // فقط البريد الإلكتروني
+      setState(() => _isLoading = true);
+
+      // تحديث كلمة المرور
+      final response = await supabase.auth.updateUser(
+        UserAttributes(password: _passwordController.text),
       );
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EmailVerification(
-            email: _emailController.text,
-          ),
-        ),
+
+      if (response.user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password updated successfully')),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      } else {
+        throw Exception('Failed to update password');
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${error.toString()}')),
       );
-    } catch (e) {
-      print("Error: $e");
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -83,7 +130,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       const SizedBox(height: 180),
                       Center(
                         child: Text(
-                          'Forget Password',
+                          'Reset Password',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 32,
@@ -104,7 +151,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       const SizedBox(height: 20),
                       Center(
                         child: Text(
-                          'Mail Address here',
+                          'Enter New Password',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Color(0xFF0C0C0C),
@@ -117,7 +164,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       const SizedBox(height: 20),
                       Center(
                         child: Text(
-                          'Enter the email address associated with your account.',
+                          'Your new password must be different from the previously used password.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Color(0xFF797979),
@@ -130,7 +177,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       ),
                       const SizedBox(height: 40),
                       Text(
-                        'Email',
+                        'Password',
                         style: TextStyle(
                           color: Color(0xFF0C0C0C),
                           fontSize: 18,
@@ -140,10 +187,23 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       ),
                       const SizedBox(height: 10),
                       TextField(
-                        controller: _emailController,
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
                         decoration: InputDecoration(
-                          hintText: 'Enter your email',
-                          prefixIcon: const Icon(Icons.email_outlined),
+                          hintText: 'Enter your new password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -152,11 +212,48 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                         ),
                       ),
                       const SizedBox(height: 20),
+                      Text(
+                        'Confirm Password',
+                        style: TextStyle(
+                          color: Color(0xFF0C0C0C),
+                          fontSize: 18,
+                          fontFamily: 'Inria Serif',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: _obscureConfirmPassword,
+                        decoration: InputDecoration(
+                          hintText: 'Confirm your new password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword =
+                                    !_obscureConfirmPassword;
+                              });
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
                       SizedBox(
                         height: 50,
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: _isLoading ? null : reset_password,
+                          onPressed: _isLoading ? null : _updatePassword,
                           style: ButtonStyle(
                             backgroundColor:
                                 MaterialStateProperty.all(Colors.transparent),
@@ -187,7 +284,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                               width: double.infinity,
                               height: double.infinity,
                               child: Text(
-                                "Recover Password",
+                                "Continue",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,

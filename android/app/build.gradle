@@ -36,5 +36,6 @@ android {
         }
     }
 }
-
-
+flutter {
+    source = "../.."
+}
